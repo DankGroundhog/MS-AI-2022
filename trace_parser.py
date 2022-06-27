@@ -67,7 +67,10 @@ def model_dir_reader(dir_name, main_dir):
             os.system(f"python {main_dir}\ortperf.py --model {filename}")
             json_name = fnmatch.filter(os.listdir(),'*.json')
             os.rename(json_name[0], f'{model}_trace.json')
-            if not os.path.exists('model_traces'):
+            if os.path.exists('model_traces'):
+                shutil.rmtree('model_traces')
+                os.mkdir('model_traces')
+            else:
                 os.mkdir('model_traces')
             shutil.move(f'{model}_trace.json', 'model_traces')
             print(f"{filename} processing: DONE")
