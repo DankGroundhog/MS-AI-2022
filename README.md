@@ -6,7 +6,7 @@
 
 >**Goal**: creating a set of tools that will allow the user to generate a "synthetic" AI/ML model that is optimized and generalized for benchmarking purposes. This will allow Microsoft customers to access a model benchmarking tool that works for any model and does not compromise the company's internal security.
 
-The process on how is described as follows:
+The process on how this works is described as follows:
 
 * Create a folder "`[name]`" where the model folders would be stored in base directory.
 * Move model folders into `[name]` folder.
