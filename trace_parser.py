@@ -1,10 +1,6 @@
 '''
 trace_parser takes a directory where models are stored, it then creates a trace per model (naming the trace),
 to then use the ort-trace.py and record the output into a CSV and JSON, in table format.
-
-TO-DO:
-1. Get OP attributes from .onnx file
-2. Polish and generalize parser
 '''
 
 # Created By: Felix M. Perez Quinones, AI Platform, ONNX (2022 Internship)
@@ -27,7 +23,7 @@ def trace_dir_reader(dir_name, main_dir):
     if os.path.exists(dir_name):
         os.chdir(dir_name)
         for filename in os.listdir(os.getcwd()):
-            os.system(f"python ..\..\..\ort_trace.py --input {filename} -v --csv")     
+            os.system(f"python ..\..\..\ort_trace.py --input {filename} -v --csv --source ..")     
     else:
         print("Error: Directory does not exist")
         
@@ -56,7 +52,7 @@ def model_dir_reader(dir_name, main_dir):
                     os.chdir('model_traces')
                     sub_filename = os.listdir()[0]
                     if fnmatch.fnmatch(sub_filename, '*.json'):
-                        os.system(f"python ..\..\..\ort_trace.py --input {sub_filename} -v --csv")   
+                        os.system(f"python ..\..\..\ort_trace.py --input {sub_filename} -v --csv --source ../{filename}")   
                     print(f"{filename} processing: DONE")
 
                     # return "model_traces", main_dir
@@ -91,9 +87,7 @@ def get_args():
 
 def main():
     args = get_args()
-    # results = model_dir_reader(args.dir, os.getcwd())
     model_dir_reader(args.dir, os.getcwd())
-    # trace_dir_reader(results[0], results[1])
     return
 
 if __name__ == "__main__":
