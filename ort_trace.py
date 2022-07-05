@@ -3,6 +3,7 @@ import json
 import logging
 import re
 import sys
+from attr import attributes
 from matplotlib.pyplot import pause
 
 import numpy as np
@@ -13,9 +14,9 @@ import onnx
 from onnx import ModelProto, helper, numpy_helper, onnx_pb
 from sqlalchemy import column
 
-# from onnx_shapes import main
+import os
 
-import ortperf
+from getAttribs import attribs
 
 logging.basicConfig(level=logging.INFO)
 _log = logging.getLogger(__name__)  # pylint: disable=invalid-name
@@ -29,6 +30,7 @@ def get_args():
     parser.add_argument('-l', type=int, default=20, help='list top N items, default=20')
     parser.add_argument('-v', action='store_true', help='verbose')
     parser.add_argument('--nodes', action='store_true', help='show top N nodes')
+    parser.add_argument('--source', required=False)
     args = parser.parse_args()
     return args
 
@@ -82,6 +84,11 @@ def json_to_df(profile_path, verbose):
 
 def logger(args):
     df = json_to_df(args.input, args.v)
+
+    with open(f"{args.source}", "rb") as f:
+        data = f.read()
+        model_proto = ModelProto()
+        model_proto.ParseFromString(data)
     
     df = pd.DataFrame(df) 
 
@@ -97,7 +104,9 @@ def logger(args):
         # Summarized CSV
         df1 = df[fields].groupby(['op_type']).sum()
         # Verbose CSV
-        df2 = df[fields].groupby(['op_type', 'input_type_shape']).sum()
+        df_attribs = attribs(model_proto)
+        df2 = pd.merge(df[fields], df_attribs, on="name", how='outer')
+        df2 = df2.groupby(['name', 'op_type', 'input_type_shape', 'attribute']).sum()
 
         df1 = df1.sort_values(by="dur", ascending=False)
         df2 = df2.sort_values(by="dur", ascending=False)
@@ -141,8 +150,6 @@ def logger(args):
         json_file = open("trace_records_verbose.json", 'w+')
         json_file.write(json_df_Ver)
         json_file.close()
-        
-    
 
 if __name__ == '__main__':
     args = get_args()
