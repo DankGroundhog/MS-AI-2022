@@ -124,6 +124,8 @@ def logger(args):
         # Summarized CSV
         df1 = df[fields].groupby(['op_type']).sum()
         # Verbose CSV
+        df_attribs = attribs(model_proto)
+        df2 = pd.merge(df[fields], df_attribs, on="name", how='outer')
         df2 = df[fields].groupby(['op_type', 'input_type_shape']).sum()
 
         df1 = df1.sort_values(by="dur", ascending=False)
