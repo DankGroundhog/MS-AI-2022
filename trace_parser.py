@@ -7,6 +7,7 @@ to then use the ort-trace.py and record the output into a CSV and JSON, in table
 
 
 import os, sys, numpy as np, argparse, shutil, onnx, fnmatch
+from posixpath import dirname
 from time import sleep
 
 
@@ -38,7 +39,7 @@ def model_dir_reader(dir_name, main_dir):
         for model in os.listdir(dir_name):
             os.chdir(f'{main_dir}\{dir_name}\{model}')
             for filename in os.listdir():
-                if fnmatch.fnmatch(filename, '*.onnx'):
+                if fnmatch.fnmatch(filename, '*.onnx') and not fnmatch.fnmatch(filename, 'model*'):
                     print(f"Currently processing: {filename}...")
                     os.system(f"python ..\..\ortperf.py --model {filename}")
                     json_name = fnmatch.filter(os.listdir(),'*.json')
@@ -54,7 +55,23 @@ def model_dir_reader(dir_name, main_dir):
                     if fnmatch.fnmatch(sub_filename, '*.json'):
                         os.system(f"python ..\..\..\ort_trace.py --input {sub_filename} -v --csv --source ../{filename}")   
                     print(f"{filename} processing: DONE")
-
+                elif fnmatch.fnmatch(filename, '*.onnx'):
+                    os.rename(filename, f'{model}.onnx')
+                    print(f"Currently processing: {filename}...")
+                    os.system(f"python ..\..\ortperf.py --model {filename}")
+                    json_name = fnmatch.filter(os.listdir(),'*.json')
+                    os.rename(json_name[0], f'{model}_trace.json')
+                    if os.path.exists('model_traces'):
+                        shutil.rmtree('model_traces')
+                        os.mkdir('model_traces')
+                    else:
+                        os.mkdir('model_traces')
+                    shutil.move(f'{model}_trace.json', 'model_traces')
+                    os.chdir('model_traces')
+                    sub_filename = os.listdir()[0]
+                    if fnmatch.fnmatch(sub_filename, '*.json'):
+                        os.system(f"python ..\..\..\ort_trace.py --input {sub_filename} -v --csv --source ../{filename}")   
+                    print(f"{filename} processing: DONE")
                     # return "model_traces", main_dir
 
     elif os.path.exists(dir_name) and os.path.isfile(dir_name):
