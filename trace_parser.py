@@ -41,7 +41,7 @@ def model_dir_reader(dir_name, main_dir):
                 if fnmatch.fnmatch(filename, '*.onnx'):
                     print(f"Currently processing: {filename}...")
                     os.system(f"python ..\..\ortperf.py --model {filename}")
-                    json_name = fnmatch.filter(os.listdir(os.getcwd()),'*.json')
+                    json_name = fnmatch.filter(os.listdir(),'*.json')
                     os.rename(json_name[0], f'{model}_trace.json')
                     if os.path.exists('model_traces'):
                         shutil.rmtree('model_traces')
