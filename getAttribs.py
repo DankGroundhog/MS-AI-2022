@@ -141,14 +141,9 @@ if __name__ == '__main__':
         return sanitized[:64] + '...<+len=%d>' % (len(sanitized) - 64)
     
     content = []
-    # attribs = []
     for node in model_proto.graph.node:
-        # print(node)
-        # content.append((node.op_type, str(node.attribute)))
-        # print(content)
         attribs = []
         for attr in node.attribute:
-            # print(type(attr))
             if attr.HasField("f"):
                 attribs.append((attr.name, str_float(attr.f)))
             elif attr.HasField("i"):
@@ -190,9 +185,7 @@ if __name__ == '__main__':
                 attribs.append(']')
             else:
                 attribs.append((attr.name,"<Unknown>"))
-            # import pdb; pdb.set_trace()
         content.append((node.op_type, str(attribs)))
-        # for i in content:
-        #     print(i)
+
     content_df = pd.DataFrame(content)
     print(content_df)
