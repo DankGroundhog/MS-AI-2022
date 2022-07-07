@@ -70,11 +70,14 @@ def json_to_df(profile_path, verbose):
             input_type_shape = json.dumps(input_type_shape) # Use JSON decode when reading this field
             assert input_type_shape is not None
             output_type_shape = arg.get('output_type_shape')
+            output_type_shape = json.dumps(output_type_shape) # Use JSON decode when reading this field
+            assert input_type_shape is not None
 
             e = {
                 "name": name, "dur": dur, "op_type": op, "provider": provider,
                 "parameter_size": parameter_size, "activation_size": activation_size,
-                "output_size": output_size, "input_type_shape": input_type_shape
+                "output_size": output_size, "input_type_shape": input_type_shape,
+                "output_type_shape": output_type_shape
             }
             entries.append(e)
     df = pd.DataFrame([f for f in entries])
@@ -99,7 +102,7 @@ def logger(args):
     df['pct'] = (100 * df['dur'] / df2['dur'])
 
     if not args.nodes:
-        fields = ["name", "op_type", "dur", "count", "pct", "input_type_shape"] # missing attribs, NOT IN TRACE
+        fields = ["name", "op_type", "dur", "count", "pct", "input_type_shape", "output_type_shape"]
         
         # Summarized CSV
         df1 = df[fields].groupby(['op_type']).sum()
@@ -110,7 +113,7 @@ def logger(args):
         else:
             print("There are naming conflicts, results may be slightly different from the model file. Proceed with caution...")
         df2 = pd.merge(df[fields], df_attribs, on="name", how='outer')
-        df2 = df2.groupby(['name', 'op_type', 'input_type_shape', 'attribute']).sum()
+        df2 = df2.groupby(['name', 'op_type', 'input_type_shape', 'output_type_shape', 'attribute']).sum()
 
         df1 = df1.sort_values(by="dur", ascending=False)
         df2 = df2.sort_values(by="dur", ascending=False)
@@ -123,7 +126,7 @@ def logger(args):
         # print(df1)
 
     else:
-        fields = ["name", "op_type", "dur", "count", "pct", "input_type_shape"]
+        fields = ["name", "op_type", "dur", "count", "pct", "input_type_shape", "output_type_shape"]
         
         # Summarized CSV
         df1 = df[fields].groupby(['op_type']).sum()
@@ -134,7 +137,7 @@ def logger(args):
         else:
             print("There are naming conflicts, results may be slightly different...")
         df2 = pd.merge(df[fields], df_attribs, on="name", how='outer')
-        df2 = df[fields].groupby(['op_type', 'input_type_shape']).sum()
+        df2 = df[fields].groupby(['op_type', 'input_type_shape', 'output_type_shape', 'attribute']).sum()
 
         df1 = df1.sort_values(by="dur", ascending=False)
         df2 = df2.sort_values(by="dur", ascending=False)
