@@ -105,6 +105,10 @@ def logger(args):
         df1 = df[fields].groupby(['op_type']).sum()
         # Verbose CSV
         df_attribs = attribs(model_proto)
+        if (set(df.name) - set(df_attribs.name)) == set():
+            print("No naming mismatches, proceeding...")
+        else:
+            print("There are naming conflicts, results may be slightly different from the model file. Proceed with caution...")
         df2 = pd.merge(df[fields], df_attribs, on="name", how='outer')
         df2 = df2.groupby(['name', 'op_type', 'input_type_shape', 'attribute']).sum()
 
@@ -125,6 +129,10 @@ def logger(args):
         df1 = df[fields].groupby(['op_type']).sum()
         # Verbose CSV
         df_attribs = attribs(model_proto)
+        if (set(df.name) - set(df_attribs.name)) == set():
+            print("No naming mismatches, proceeding...")
+        else:
+            print("There are naming conflicts, results may be slightly different...")
         df2 = pd.merge(df[fields], df_attribs, on="name", how='outer')
         df2 = df[fields].groupby(['op_type', 'input_type_shape']).sum()
 
