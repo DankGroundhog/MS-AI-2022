@@ -67,7 +67,7 @@ def json_to_df(profile_path, verbose):
             activation_size = arg.get('activation_size')
             output_size = arg.get('output_size')
             input_type_shape = arg.get('input_type_shape')
-            input_type_shape = json.dumps([list(i.values())[0] for i in input_type_shape])
+            input_type_shape = json.dumps(input_type_shape) # Use JSON decode when reading this field
             assert input_type_shape is not None
             output_type_shape = arg.get('output_type_shape')
 
