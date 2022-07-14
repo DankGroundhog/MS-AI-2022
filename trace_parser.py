@@ -9,6 +9,7 @@ to then use the ort-trace.py and record the output into a CSV and JSON, in table
 import os, sys, numpy as np, argparse, shutil, onnx, fnmatch
 from posixpath import dirname
 from time import sleep
+from stats_calculator import calculator
 
 
 def trace_dir_reader(dir_name, main_dir):
@@ -27,9 +28,20 @@ def trace_dir_reader(dir_name, main_dir):
             os.system(f"python ..\..\..\ort_trace.py --input {filename} -v --csv --source ..")     
     else:
         print("Error: Directory does not exist")
-        
 
-def model_dir_reader(dir_name, main_dir):
+def get_args():
+    '''
+    Arg list:
+        --dir [directory path(folder name if trace_parser is in the same directory)]
+        -v [verbose stats logging/printing for model creation]
+    '''   
+    parser = argparse.ArgumentParser(description='Look at the code for flag descriptions')
+    parser.add_argument("-d","--dir", required=True, help='directory path or folder name where model.onnx(s) are located')
+    parser.add_argument("-v", required=False, action='store_true', help="verbose stat logging for model creation")
+    args = parser.parse_args()
+    return args        
+
+def model_dir_reader(dir_name, main_dir, args):
     # Read models from a directory where, ideally, .onnx files are stored. 
     # Runs ortperf.py, gets a trace, renames the trace to the AI/ML model name 
     # and stores it into a folder (create the folder) where it can then be processed. 
@@ -88,23 +100,13 @@ def model_dir_reader(dir_name, main_dir):
             shutil.move(f'{model}_trace.json', 'model_traces')
             print(f"{filename} processing: DONE")
 
-            # return "model_traces", main_dir
-
-def get_args():
-    '''
-    Arg list:
-        --dir [directory path(folder name if trace_parser is in the same directory)]
-    '''   
-    parser = argparse.ArgumentParser(description='Look at the code for flag descriptions')
-    parser.add_argument("-d","--dir", required=True, help='directory path or folder name where model.onnx(s) are located')
-    args = parser.parse_args()
-    return args
-
+    os.chdir(f'{main_dir}')
+    calculator(os.getcwd(), args.dir, args.v)
 
 
 def main():
     args = get_args()
-    model_dir_reader(args.dir, os.getcwd())
+    model_dir_reader(args.dir, os.getcwd(), args)
     return
 
 if __name__ == "__main__":
