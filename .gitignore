@@ -4,3 +4,4 @@ models
 __pycache__
 onnx_shapes.py 
 make-onnx*.py
+Scrap
