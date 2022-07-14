@@ -47,6 +47,35 @@ def calculator(dir, model_dir, flag):
                     for value in data['name'].values: keyset.add(value)
                     for op in range(len(data)):
                         op_vals.append([data['name'][op], data['count'][op]])
+
+        # Enter the ratio calculation part of the calculator
+        total_sum = 0
+        stats_dict = dict()
+        keyset = list(keyset)
+        
+        for key in range(len(keyset)): stats_dict[f'{keyset[key]}'] = 0 
+
+        for i in range(len(stats_dict)):
+            for j in range(len(op_vals)):
+                temp = op_vals[j]
+                if list(stats_dict)[i] == temp[0]:
+                    total_sum += temp[1]
+            stats_dict[f'{keyset[i]}'] = total_sum
+            total_sum = 0
+        del total_sum
+
+        op_ratios = []
+        vals = list(stats_dict.values())
+        absolute_sum = sum(stats_dict.values())
+        for op in range(len(stats_dict)):
+            op_ratios.append(round((vals[op] / absolute_sum)*100, 3))
+
+        stats_df = pd.DataFrame(index=keyset)
+        stats_df["Total Count"] = stats_dict.values()
+        stats_df["Op Ratio"] = op_ratios
+        stats_df.sort_values(by="Total Count")
+        print(stats_df)
+                        
     else: # default version (summarized)
         for model in os.listdir():
             os.chdir(f"{dir}/{model_dir}/{model}/model_traces")
@@ -59,33 +88,33 @@ def calculator(dir, model_dir, flag):
                     for op in range(len(data)):
                         op_vals.append((data['op_type'][op], data['count'][op]))
 
-    # Enter the ratio calculation part of the calculator
-    total_sum = 0
-    stats_dict = dict()
-    keyset = list(keyset)
-    
-    for key in range(len(keyset)): stats_dict[f'{keyset[key]}'] = 0 
-
-    for i in range(len(stats_dict)):
-        for j in range(len(op_vals)):
-            temp = op_vals[j]
-            if list(stats_dict)[i] == temp[0]:
-                total_sum += temp[1]
-        stats_dict[f'{keyset[i]}'] = total_sum
+        # Enter the ratio calculation part of the calculator
         total_sum = 0
-    del total_sum
+        stats_dict = dict()
+        keyset = list(keyset)
+        
+        for key in range(len(keyset)): stats_dict[f'{keyset[key]}'] = 0 
 
-    op_ratios = []
-    vals = list(stats_dict.values())
-    absolute_sum = sum(stats_dict.values())
-    for op in range(len(stats_dict)):
-        op_ratios.append(round((vals[op] / absolute_sum)*100, 3))
+        for i in range(len(stats_dict)):
+            for j in range(len(op_vals)):
+                temp = op_vals[j]
+                if list(stats_dict)[i] == temp[0]:
+                    total_sum += temp[1]
+            stats_dict[f'{keyset[i]}'] = total_sum
+            total_sum = 0
+        del total_sum
 
-    stats_df = pd.DataFrame(index=keyset)
-    stats_df["Total Count"] = stats_dict.values()
-    stats_df["Op Ratio"] = op_ratios
-    stats_df.sort_values(by="Total Count")
-    print(stats_df)
+        op_ratios = []
+        vals = list(stats_dict.values())
+        absolute_sum = sum(stats_dict.values())
+        for op in range(len(stats_dict)):
+            op_ratios.append(round((vals[op] / absolute_sum)*100, 3))
+
+        stats_df = pd.DataFrame(index=keyset)
+        stats_df["Total Count"] = stats_dict.values()
+        stats_df["Op Ratio"] = op_ratios
+        stats_df.sort_values(by="Total Count")
+        print(stats_df)
 
 if __name__ == "__main__":
     args = get_args()
