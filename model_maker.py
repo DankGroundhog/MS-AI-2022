@@ -58,7 +58,8 @@ def process_and_make():
         output_buffer = json.loads(data_df['output_type_shape'][i])
         op_buffer = data_df['op_type'][i]
 
-
+        # Fix input encoding: Passes 1 string - Model interprets as a list of
+        # Convert the node list to a directed graph, then turn that graph into the model?
 
         input_buffer = ''.join(str(list(input_buffer[0].values())))
         output_buffer = ''.join(str(list(output_buffer[0].values())))
@@ -67,7 +68,7 @@ def process_and_make():
         nodes.append(make_node(op_buffer, inputs=input_buffer, outputs=output_buffer, name=None, doc_string=None, domain=None))
         input_buffer, output_buffer, op_buffer = None, None, None
 
-    X = np.array([[1, 1, 1], 
+    X = np.array([[1, 1, 1], # Graph Input | Make generic by reading first DF sorted by input (small --> large)
               [1, 1, 1], 
               [1, 1, 1]], dtype=np.float32).reshape(1, 1, 3, 3)
 
