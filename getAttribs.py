@@ -20,6 +20,8 @@ from typing import Text, Sequence, TypeVar, Callable
 
 import pandas as pd
 
+import json
+
 def attribs(model_proto):
 
     def str_float(f):  # type: (float) -> Text
@@ -58,9 +60,9 @@ def attribs(model_proto):
         attribs = []
         for attr in node.attribute:
             if attr.HasField("f"):
-                attribs.append((attr.name, str_float(attr.f)))
+                attribs.append([attr.name, str_float(attr.f)])
             elif attr.HasField("i"):
-                attribs.append((attr.name,str_int(attr.i)))
+                attribs.append([attr.name,str_int(attr.i)])
             elif attr.HasField("s"):
                 # TODO: Bit nervous about Python 2 / Python 3 determinism implications
                 attribs.append(repr(_sanitize_str(attr.s)))
@@ -76,12 +78,12 @@ def attribs(model_proto):
             elif attr.HasField("tp"):
                 attribs.append("<Type Proto {}>".format(attr.tp))
             elif attr.floats:
-                attribs.append((attr.name, str_list(str_float, attr.floats)))
+                attribs.append([attr.name, str_list(str_float, attr.floats)])
             elif attr.ints:
-                attribs.append((attr.name, str_list(str_int, attr.ints)))
+                attribs.append([attr.name, str_list(str_int, attr.ints)])
             elif attr.strings:
                 # TODO: Bit nervous about Python 2 / Python 3 determinism implications
-                attribs.append((attr.name, str(list(map(_sanitize_str, attr.strings)))))
+                attribs.append([attr.name, str(list(map(_sanitize_str, attr.strings)))])
             elif attr.tensors:
                 attribs.append("[<Tensor>, ...]")
             elif attr.type_protos:
@@ -98,7 +100,7 @@ def attribs(model_proto):
                 attribs.append(']')
             else:
                 attribs.append((attr.name,"<Unknown>"))
-        content.append((node.name, str(attribs)))
+        content.append([node.name, str(attribs)])
  
     content_df = pd.DataFrame(content)
     content_df.columns = ["name", "attribute"]
