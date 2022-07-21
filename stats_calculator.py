@@ -38,11 +38,11 @@ def calculator(dir, model_dir, flag):
     op_vals = [] # (Op_type, ratio)
     if flag: # if verbose option is selected
         for model in os.listdir():
-            os.chdir(f'{model_dir}/{model_dir}/{model}/model_traces')
+            os.chdir(f'{dir}/{model_dir}/{model}/model_traces') 
             for log in os.listdir():
                 if fnmatch.fnmatch(log, "*_verbose.csv"):
                     with open(log, 'r'):
-                        data = pd.read_csv(log, usecols=["name", "count"])
+                        data = pd.read_csv(log, usecols=["name", "count", 'op_type', 'input_type_shape', 'output_type_shape', 'attribute'])
                         # log.close()
                     for value in data['name'].values: keyset.add(value)
                     for op in range(len(data)):
@@ -74,8 +74,10 @@ def calculator(dir, model_dir, flag):
         stats_df["Total Count"] = stats_dict.values()
         stats_df["Op Ratio"] = op_ratios
         stats_df.sort_values(by="Total Count")
-        print(stats_df)
-                        
+        # print(stats_df)
+        # return stats_df
+        os.chdir("../..")
+
     else: # default version (summarized)
         for model in os.listdir():
             os.chdir(f"{dir}/{model_dir}/{model}/model_traces")
@@ -114,7 +116,10 @@ def calculator(dir, model_dir, flag):
         stats_df["Total Count"] = stats_dict.values()
         stats_df["Op Ratio"] = op_ratios
         stats_df.sort_values(by="Total Count")
-        print(stats_df)
+        # print(stats_df)
+        # return stats_df
+        os.chdir("../..")
+
 
 if __name__ == "__main__":
     args = get_args()
