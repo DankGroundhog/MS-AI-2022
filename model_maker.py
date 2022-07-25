@@ -49,12 +49,10 @@ def save_protobuf(path, message):
 
 # def process_and_make(data_df, stats_df):
 def process_and_make():
-    # Receive data_df and for each entry, create a node.
+    # Receive data_df and for each entry, create a node. Ideal order of indices
     #    0          1         2              3                                  4                              5
     # "op_type", "count", 'op_type', 'input_type_shape' [JSON string], 'output_type_shape' [JSON string], 'attribute'
     data_df = pd.read_csv("models/bertsquad-12/model_traces/trace_records_verbose.csv")
-    # print(data_df)
-    # inputs_to_sort = []
     nodes = []
     input_buffer, output_buffer, op_buffer, attrib_buffer = None, None, None, None
     input_pos = 0 # This var is used for the input/output tags of the nodes
@@ -65,11 +63,6 @@ def process_and_make():
         buffer_string = ''
         buffer_list = list()
         input_buffer = json.loads(data_df['input_type_shape'][i])
-
-        # if input_buffer[0].keys() == 'int*':
-        #     shape_type = int()
-        # elif input_buffer[0].keys() == 'float':
-        #     shape_type = float()
 
         output_buffer = json.loads(data_df['output_type_shape'][i])
         attrib_buffer = data_df['attribute'][i]
@@ -84,7 +77,6 @@ def process_and_make():
                             buffer_list[i] = str(buffer_list[i].strip(" [\' \'] "))
                     else:
                         buffer_list[i] = int(buffer_list[i].strip(" \' [\' \'] \'"))
-                    #buffer_list[i] = int(buffer_list[i].strip().strip('\''))
 
             input_buffer = ''.join(str(list(input_buffer[0].values())))
             input_buffer = input_buffer.strip('[]').split(',')
@@ -118,8 +110,6 @@ def process_and_make():
                         if type(buffer_list[i]) == type(str()) and re.search('[a-zA-Z]+', buffer_list[i]):
                             buffer_list[i] = str(buffer_list[i].strip(" [\' \'] "))
                         else:
-                        # if i != len(buffer_list):
-                            # buffer_list[i] = buffer_list[i].strip(" \' [\' \'] \'")
                             buffer_list[i] = float(buffer_list[i].strip(" \' [\' \'] \'"))
                     # if it is a string, assign to name, else, assign to attr_vals. Then merge again in attrib_list
                     i = 0
@@ -134,19 +124,7 @@ def process_and_make():
                                 attrib_list_dump.append([name, attr_vals])
                                 attr_vals = []
                         i += 1
-                    # switch = True
-                    # for i in range(len(buffer_list)):
-                    #     if type(buffer_list[i]) == type(str()) and switch:
-                    #         name = buffer_list[i]
-                    #         switch = False
-                    #     if switch == False:
-                    #         if (type(buffer_list[i]) == type(str())):
-                    #             switch = True
-                    #         attr_vals.append(buffer_list[i])
-                    # ------------------------------------------------------------------------    
-                    # for j in range(len(buffer_list)):
-                    #     if isinstance(buffer_list[j], list):
-                    #         attrib_list_dump.append(buffer_list[j])
+
                     buffer_list = attrib_list_dump
                     del attrib_list_dump, name
                 else:
@@ -154,37 +132,13 @@ def process_and_make():
                     buffer_list[0] = str(buffer_list[0].strip("\'"))                   
                     buffer_list[1] = float(buffer_list[1].strip().strip("\'"))
 
-            # input_buffer = ''.join(str(list(input_buffer[0].values())))
-            # input_buffer = input_buffer.strip('[]').split(',')
-            # for item in range(len(input_buffer)): input_buffer[item] = float(input_buffer[item])
-            # output_buffer = ''.join(str(list(output_buffer[0].values())))
-            # output_buffer = output_buffer.strip('[]').split(',')
-            # for item in range(len(output_buffer)): output_buffer[item] = float(output_buffer[item])
-
         attrib_buffer = buffer_list
         del buffer_list
 
-        # attrib_buffer = dict(attrib_buffer)
         op_buffer = data_df['op_type'][input_pos]
 
-        # Fix input encoding: Passes 1 string - Model interprets as a list of
+        # Fix input encoding: Passes 1 string - Model interprets as a list of characters
         # Convert the node list to a directed graph, then turn that graph into the model?
-
-        # input_buffer = ''.join(str(list(input_buffer[0].values())))
-        # input_buffer = input_buffer.strip('[]').split(',')
-        # for item in range(len(input_buffer)): input_buffer[item] = int(input_buffer[item])
-        # output_buffer = ''.join(str(list(output_buffer[0].values())))
-        # output_buffer = output_buffer.strip('[]').split(',')
-        # for item in range(len(output_buffer)): output_buffer[item] = int(output_buffer[item])
-
-        # input_buffer = ''.join(str(input_buffer[0].values()))
-        # output_buffer = ''.join(str(output_buffer[0].values()))
-    
-        #kernel shape = attrib
-        #input = list of names
-        #input name is just a 'pointer'
-        #op_buffer + pos number for the input
-        #   
         
         #Adding kernel_hape to the attribute list
         attrib_buffer = [["attributes", attrib_buffer], ["kernel_shape", input_buffer]]
