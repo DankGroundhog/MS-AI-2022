@@ -11,24 +11,6 @@ from posixpath import dirname
 from time import sleep
 from stats_calculator import calculator
 
-
-def trace_dir_reader(dir_name, main_dir):
-    # Read directory where traces are located, ideally named by model_folder_reader.
-    # Takes the folder, runs ort-trace on it, ideally prints terminal output into a DF
-    # and then converts DF into CSV/JSON in the same trace directory.
-
-    '''
-        DEPRECATED : Combined into model_dir_reader()
-    '''
-
-    # Check if directory exists
-    if os.path.exists(dir_name):
-        os.chdir(dir_name)
-        for filename in os.listdir(os.getcwd()):
-            os.system(f"python ..\..\..\ort_trace.py --input {filename} -v --csv --source ..")     
-    else:
-        print("Error: Directory does not exist")
-
 def get_args():
     '''
     Arg list:
