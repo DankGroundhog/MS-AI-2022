@@ -10,6 +10,7 @@ import os, sys, numpy as np, argparse, shutil, onnx, fnmatch
 from posixpath import dirname
 from time import sleep
 from stats_calculator import calculator
+from model_maker import process_and_make
 
 def get_args():
     '''
@@ -84,6 +85,7 @@ def model_dir_reader(dir_name, main_dir, args):
 
     os.chdir(f'{main_dir}')
     calculator(os.getcwd(), args.dir, args.v)
+    process_and_make(f'{main_dir}/{args.dir}')
     # Import process_and_make and use it here.
 
 
