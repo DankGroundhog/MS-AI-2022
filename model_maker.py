@@ -155,7 +155,7 @@ def process_and_make(main_dir):
                     attrib_buffer = [["attributes", attrib_buffer], ["kernel_shape", input_buffer]]
                     attrib_buffer = dict(attrib_buffer)
                     # nodes.append(make_node(op_buffer, inputs=str(input_pos), outputs=str(input_pos + 1), name=str(input_pos), kernel_shape=input_buffer, kwargs=attrib_buffer))
-                    nodes.append(make_node(op_buffer, inputs=str(input_pos), outputs=str(input_pos + 1), name=str(input_pos), kwargs=attrib_buffer))
+                    nodes.append(make_node(op_buffer, inputs=[str(input_pos)], outputs=[str(input_pos + 1)], name=str(input_pos), kwargs=attrib_buffer))
                     input_pos += 1
                     if i == 0: initial_input = input_buffer
                     input_buffer, output_buffer, op_buffer, attrib_buffer = None, None, None, None
