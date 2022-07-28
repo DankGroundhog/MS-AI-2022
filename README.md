@@ -1,6 +1,6 @@
 # Summer 2022: AI Platform Internship Project
 
->**Project Name**: Synthetic Model Creation for Optimization/Benchmarking Research.
+>**Project Name**: Project Fenix: Synthetic Model Creation for Research.
 
 >**GOAL**: creating a set of tools that will allow the user to generate a "synthetic" AI/ML model that is optimized and generalized for benchmarking purposes. This will allow Microsoft customers to access a model benchmarking tool that works for any model and does not compromise the company's internal security.
 
