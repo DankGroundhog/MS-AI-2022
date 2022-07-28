@@ -70,10 +70,7 @@ def process_and_make(main_dir):
             if fnmatch(log, '*_verbose.csv'):
     
                 data_df = pd.read_csv(f'model_traces/{log}')
-                # nodes = []
                 input_buffer, output_buffer, op_buffer, attrib_buffer = None, None, None, None
-                # input_pos = 0 # This var is used for the input/output tags of the nodes
-                # initial_input = None
 
                 for i in range(len(data_df)):
                     buffer_string = ''
@@ -153,7 +150,6 @@ def process_and_make(main_dir):
 
                     op_buffer = data_df['op_type'][i]
 
-                    # Fix input encoding: Passes 1 string - Model interprets as a list of characters
                     # Convert the node list to a directed graph, then turn that graph into the model?
                     
                     #Adding kernel_hape to the attribute list
@@ -162,7 +158,6 @@ def process_and_make(main_dir):
                     # nodes.append(make_node(op_buffer, inputs=str(input_pos), outputs=str(input_pos + 1), name=str(input_pos), kernel_shape=input_buffer, kwargs=attrib_buffer))
                     nodes.append(make_node(op_buffer, inputs=[str(input_pos)], outputs=[str(input_pos + 1)], name=str(input_pos), kwargs=attrib_buffer))
                     input_pos += 1
-                    # if i == 0: initial_input = input_buffer
                     input_buffer, output_buffer, op_buffer, attrib_buffer = None, None, None, None
 
                 # X = np.array([[1, 1, 1], # Graph Input | Make generic by reading first DF sorted by input (small --> large)
