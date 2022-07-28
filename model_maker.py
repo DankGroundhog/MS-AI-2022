@@ -45,20 +45,32 @@ def save_protobuf(path, message):
     with open(path, "wb") as f:
         f.write(message.SerializeToString())
 
-# For each entry in the df, depending on the op_type, input/output shape
-# attribute. Maybe padding too???
+def get_inputs_and_outputs(main_dir):
+    inputs, outputs = [], []
+    data, buffer = None, None
+    os.chdir(f'{main_dir}')
+    for model in os.listdir():
+        os.chdir(f'{main_dir}/{model}')
+        for file in os.listdir():
+            if fnmatch(file, '*.onnx'):
+                data = onnx.load(file)
+                inputs.append(data.graph.input)
+                outputs.append(data.graph.output)
+    os.chdir('..')
+    return inputs, outputs
 
 def process_and_make(main_dir):
-# def process_and_make():
     # Receive data_df and for each entry, create a node. Ideal order of indices
     #    0          1         2              3                                  4                              5
     # "op_type", "count", 'op_type', 'input_type_shape' [JSON string], 'output_type_shape' [JSON string], 'attribute'
     
     # for every verbose csv in --dir "models", do ALL of this
-    # for
+
+    graph_inputs, graph_outputs = get_inputs_and_outputs(main_dir)
+
     nodes = []
     input_pos = 0 # This var is used for the input/output tags of the nodes
-    initial_input = None
+    # initial_input = None
     for model in os.listdir(main_dir):
         os.chdir(f'{main_dir}/{model}')
         for log in os.listdir('model_traces'):
@@ -113,7 +125,7 @@ def process_and_make(main_dir):
                             buffer_list = []
                         else:
                             if attrib_buffer.find("[[[") == -1:
-                                # I know this looks super redundant, but this is how it works consistently trust me
+                                # I know this looks super redundant, but this is how it works consistently, trust me ':)
                                 attrib_list_dump, name, attr_vals = [], None, []
                                 buffer_list = attrib_buffer.strip(" [\' \'] ").strip('[ \' [\' \'] \' ]').split(',')
                                 for i in range(len(buffer_list)):
@@ -157,7 +169,7 @@ def process_and_make(main_dir):
                     # nodes.append(make_node(op_buffer, inputs=str(input_pos), outputs=str(input_pos + 1), name=str(input_pos), kernel_shape=input_buffer, kwargs=attrib_buffer))
                     nodes.append(make_node(op_buffer, inputs=[str(input_pos)], outputs=[str(input_pos + 1)], name=str(input_pos), kwargs=attrib_buffer))
                     input_pos += 1
-                    if i == 0: initial_input = input_buffer
+                    # if i == 0: initial_input = input_buffer
                     input_buffer, output_buffer, op_buffer, attrib_buffer = None, None, None, None
 
                 # X = np.array([[1, 1, 1], # Graph Input | Make generic by reading first DF sorted by input (small --> large)
@@ -165,14 +177,23 @@ def process_and_make(main_dir):
                 #           [1, 1, 1]], dtype=np.float32).reshape(1, 1, 3, 3)
 
     os.chdir(f'..')
+    graph_input_buffer, graph_output_buffer = [], []
+    for i in range(len(graph_inputs)):
+        # graph_inputs[i][0] is already a ValueProto object. Only adding it without creating a new TensorValue or ValueProto equivalent. 
+        graph_input_buffer.append(graph_inputs[i][0])
+    for j in range(len(graph_outputs)):
+        # graph_outputs[j][0] is already a ValueProto object. Only adding it without creating a new TensorValue or ValueProto equivalent. 
+        graph_output_buffer.append(graph_outputs[j][0])
 
     model = helper.make_model(
     opset_imports=[helper.make_operatorsetid('', 11)],
     producer_name='Synthetic-Model-test',
     graph=make_graph(
         name='test',
-        inputs=[helper.make_tensor_value_info('X', TensorProto.FLOAT, shape=initial_input)],
-        outputs=[helper.make_tensor_value_info('Y', TensorProto.FLOAT, shape=[1,25])],
+        # inputs=[helper.make_tensor_value_info('A', TensorProto.FLOAT, shape=initial_input)],
+        inputs=graph_input_buffer,
+        outputs=graph_output_buffer,
+        # outputs=[helper.make_tensor_value_info('Y', TensorProto.FLOAT, shape=[1,25])],
         nodes=nodes,
         ),
     )
