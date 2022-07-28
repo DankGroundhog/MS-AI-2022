@@ -13,7 +13,7 @@ from onnx import ModelProto, helper, numpy_helper, onnx_pb
 
 from six import text_type, integer_types, binary_type
 
-from onnx import ModelProto
+from onnx import ModelProto, helper, numpy_helper, onnx_pb, AttributeProto, TensorProto, GraphProto
 
 from onnx.mapping import STORAGE_TENSOR_TYPE_TO_FIELD
 from typing import Text, Sequence, TypeVar, Callable
@@ -57,7 +57,7 @@ def attribs(model_proto):
     content = []
     attribs = []
     for node in model_proto.graph.node:
-        attribs = []
+        # attribs = []
         for attr in node.attribute:
             if attr.HasField("f"):
                 attribs.append([attr.name, str_float(attr.f)])
@@ -101,13 +101,14 @@ def attribs(model_proto):
             else:
                 attribs.append((attr.name,"<Unknown>"))
         content.append([node.name, str(attribs)])
+        attribs = []
  
     content_df = pd.DataFrame(content)
     content_df.columns = ["name", "attribute"]
     return content_df
 
 if __name__ == '__main__':
-    with open("bertsquad-12.onnx", "rb") as f:
+    with open("bertsquad-12.onnx", "rb") as f: # Code for testing, not for running it individually
         data = f.read()
         model_proto = ModelProto()
         model_proto.ParseFromString(data)
