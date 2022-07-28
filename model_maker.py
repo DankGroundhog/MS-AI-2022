@@ -25,13 +25,6 @@ from onnx.helper import make_graph
 from _curses import *
 import re
 
-# def get_args():
-#     parser = argparse.ArgumentParser(description='onnxruntime modelmaking tool')
-#     parser.add_argument('--input', required=True, help='input file, whether CSV or JSON')
-#     parser.add_argument('--name', help='names the synthetic model')
-#     args = parser.parse_args()
-#     return args
-
 def make_node(op_type, inputs, outputs, name=None, doc_string=None, domain=None, **kwargs):
     node = helper.make_node(op_type, inputs, outputs, name, doc_string, domain, **kwargs)
     if doc_string == '':
