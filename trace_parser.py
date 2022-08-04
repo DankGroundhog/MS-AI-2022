@@ -50,6 +50,7 @@ def model_dir_reader(dir_name, main_dir, args):
                     if fnmatch.fnmatch(sub_filename, '*.json'):
                         os.system(f"python ..\..\..\ort_trace.py --input {sub_filename} -v --csv --source ../{filename}")   
                     print(f"{filename} processing: DONE")
+                    break
                 elif fnmatch.fnmatch(filename, '*.onnx'):
                     os.rename(filename, f'{model}.onnx')
                     print(f"Currently processing: {filename}...")
@@ -67,8 +68,10 @@ def model_dir_reader(dir_name, main_dir, args):
                     if fnmatch.fnmatch(sub_filename, '*.json'):
                         os.system(f"python ..\..\..\ort_trace.py --input {sub_filename} -v --csv --source ../{filename}")   
                     print(f"{filename} processing: DONE")
+                    break
                     # return "model_traces", main_dir
-
+    
+    # FIX THIS BRUH
     elif os.path.exists(dir_name) and os.path.isfile(dir_name):
         if fnmatch.fnmatch(dir_name, '*.onnx'):
             print(f"Currently processing: {filename}...")
