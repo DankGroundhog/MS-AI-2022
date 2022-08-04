@@ -16,7 +16,7 @@ from sqlalchemy import column
 
 import os
 
-from getAttribs import attribs
+from getAttribs import attribs, set_attrib_json
 
 logging.basicConfig(level=logging.INFO)
 _log = logging.getLogger(__name__)  # pylint: disable=invalid-name
@@ -106,17 +106,17 @@ def logger(args):
         
         # Summarized CSV
         df1 = df[fields].groupby(['op_type']).sum()
-        # Verbose CSV
         df_attribs = attribs(model_proto)
+
         if (set(df.name) - set(df_attribs.name)) == set():
             print("No naming mismatches, proceeding...")
         else:
             print("There are naming conflicts, results may be slightly different from the model file. Proceed with caution...")
-        df2 = pd.merge(df[fields], df_attribs, on="name", how='outer')
-        df2 = df2.groupby(['name', 'op_type', 'input_type_shape', 'output_type_shape', 'attribute']).sum()
+        df2 = pd.merge(df, df_attribs, on="name", how='outer')
+
 
         df1 = df1.sort_values(by="dur", ascending=False)
-        df2 = df2.sort_values(by="dur", ascending=False)
+        df2 = df2.sort_values(by="I/O", ascending=False)
         df1['csum'] = df1['pct'].cumsum()
         df1['avg'] = df1['dur'] / df1['count']
         df2['csum'] = df2['pct'].cumsum()
