@@ -22,6 +22,23 @@ import pandas as pd
 
 import json
 
+attrib_json = None
+
+def set_attrib_json():
+    return attrib_json
+
+def default(o):
+    try:
+        iterable = iter(o)
+    except TypeError:
+        raise TypeError(f'Object of type {o.__class__.__name__} '
+                        f'is not JSON serializable')
+    else:
+        return list(iterable)
+        # Let the base class default method raise the TypeError
+    
+    # return JSONEncoder.default(, o)
+
 def attribs(model_proto):
 
     def str_float(f):  # type: (float) -> Text
@@ -55,43 +72,49 @@ def attribs(model_proto):
         return sanitized[:64] + '...<+len=%d>' % (len(sanitized) - 64)
     
     content = []
-    attribs = []
+    node_data = {}
+    attribs = {}
     for node in model_proto.graph.node:
         # attribs = []
+        node_data['name'] = node.name
+        node_data['I/O'] = [node.input[0], node.output[0]]
+        # print(node.input)
         for attr in node.attribute:
             if attr.HasField("f"):
-                attribs.append([attr.name, str_float(attr.f)])
+                attribs[attr.name] = attr.f
             elif attr.HasField("i"):
-                attribs.append([attr.name,str_int(attr.i)])
+                attribs[attr.name] = attr.i
             elif attr.HasField("s"):
                 # TODO: Bit nervous about Python 2 / Python 3 determinism implications
-                attribs.append(repr(_sanitize_str(attr.s)))
+                attribs[attr.name] = repr(_sanitize_str(attr.s))
             elif attr.HasField("t"):
                 if len(attr.t.dims) > 0:
-                    attribs.append("<Tensor>")
+                    attribs[attr.t.name] = "<Tensor>"
                 else:
                     # special case to print scalars
                     field = STORAGE_TENSOR_TYPE_TO_FIELD[attr.t.data_type]
-                    attribs.append('<Scalar Tensor {}>'.format(str(getattr(attr.t, field))))
+                    attribs[attr.t.name] = getattr(attr.t, field)
             elif attr.HasField("g"):
-                attribs.append("<graph {}>".format(attr.g.name))
+                attribs[attr.name] = attr.g.name
             elif attr.HasField("tp"):
-                attribs.append("<Type Proto {}>".format(attr.tp))
+                attribs[attr.name] = attr.tp
             elif attr.floats:
-                attribs.append([attr.name, str_list(str_float, attr.floats)])
+                attribs[attr.name] = attr.floats
             elif attr.ints:
-                attribs.append([attr.name, str_list(str_int, attr.ints)])
+                attribs[attr.name] = attr.ints
             elif attr.strings:
                 # TODO: Bit nervous about Python 2 / Python 3 determinism implications
-                attribs.append([attr.name, str(list(map(_sanitize_str, attr.strings)))])
+                attribs[attr.name] = list(map(_sanitize_str, attr.strings))
             elif attr.tensors:
-                attribs.append("[<Tensor>, ...]")
+                attribs[attr.name] = "[<Tensor>, ...]"
+            # Fix this to fit the dictionary fix
             elif attr.type_protos:
                 attribs.append('[')
                 for i, tp in enumerate(attr.type_protos):
                     comma = ',' if i != len(attr.type_protos) - 1 else ''
                     attribs.append('<Type Proto {}>{}'.format(tp, comma))
                 attribs.append(']')
+            # Fix this to fit the dictionary fix
             elif attr.graphs:
                 attribs.append('[')
                 for i, g in enumerate(attr.graphs):
@@ -99,13 +122,20 @@ def attribs(model_proto):
                     attribs.append('<graph {}>{}'.format(g.name, comma))
                 attribs.append(']')
             else:
-                attribs.append((attr.name,"<Unknown>"))
-        content.append([node.name, str(attribs)])
-        attribs = []
- 
-    content_df = pd.DataFrame(content)
-    content_df.columns = ["name", "attribute"]
-    return content_df
+                attribs[attr.name] = "<Unknown>"
+        node_data['attribute'] = attribs
+        content.append(json.dumps(node_data, default=default))
+        attribs = {}
+    
+    buffer_dict = dict()
+    for i in range(len(content)):
+        # For every element, json.loads into the dict
+        buffer_dict[f'{i}'] = json.loads(content[i])
+
+    attrib_json_file = open("attrib_buffer.json", "w+")
+    json.dump(buffer_dict, attrib_json_file, indent=3)
+
+    return pd.DataFrame(buffer_dict).transpose()
 
 if __name__ == '__main__':
     with open("bertsquad-12.onnx", "rb") as f: # Code for testing, not for running it individually
@@ -144,42 +174,46 @@ if __name__ == '__main__':
         return sanitized[:64] + '...<+len=%d>' % (len(sanitized) - 64)
     
     content = []
+    node_data = {}
+    attribs = {}
     for node in model_proto.graph.node:
-        attribs = []
+        node_data['name'] = node.name
         for attr in node.attribute:
             if attr.HasField("f"):
-                attribs.append((attr.name, str_float(attr.f)))
+                attribs[attr.name] = attr.f
             elif attr.HasField("i"):
-                attribs.append((attr.name,str_int(attr.i)))
+                attribs[attr.name] = attr.i
             elif attr.HasField("s"):
                 # TODO: Bit nervous about Python 2 / Python 3 determinism implications
-                attribs.append(repr(_sanitize_str(attr.s)))
+                attribs[attr.name] = repr(_sanitize_str(attr.s))
             elif attr.HasField("t"):
                 if len(attr.t.dims) > 0:
-                    attribs.append("<Tensor>")
+                    attribs[attr.t.name] = "<Tensor>"
                 else:
                     # special case to print scalars
                     field = STORAGE_TENSOR_TYPE_TO_FIELD[attr.t.data_type]
-                    attribs.append('<Scalar Tensor {}>'.format(str(getattr(attr.t, field))))
+                    attribs[attr.t.name] = getattr(attr.t, field)
             elif attr.HasField("g"):
-                attribs.append("<graph {}>".format(attr.g.name))
+                attribs[attr.name] = attr.g.name
             elif attr.HasField("tp"):
-                attribs.append("<Type Proto {}>".format(attr.tp))
+                attribs[attr.name] = attr.tp
             elif attr.floats:
-                attribs.append((attr.name, str_list(str_float, attr.floats)))
+                attribs[attr.name] = attr.floats
             elif attr.ints:
-                attribs.append((attr.name, str_list(str_int, attr.ints)))
+                attribs[attr.name] = attr.ints
             elif attr.strings:
                 # TODO: Bit nervous about Python 2 / Python 3 determinism implications
-                attribs.append((attr.name, str(list(map(_sanitize_str, attr.strings)))))
+                attribs[attr.name] = list(map(_sanitize_str, attr.strings))
             elif attr.tensors:
-                attribs.append("[<Tensor>, ...]")
+                attribs[attr.name] = "[<Tensor>, ...]"
+            # Fix this to fit the dictionary fix
             elif attr.type_protos:
                 attribs.append('[')
                 for i, tp in enumerate(attr.type_protos):
                     comma = ',' if i != len(attr.type_protos) - 1 else ''
                     attribs.append('<Type Proto {}>{}'.format(tp, comma))
                 attribs.append(']')
+            # Fix this to fit the dictionary fix
             elif attr.graphs:
                 attribs.append('[')
                 for i, g in enumerate(attr.graphs):
@@ -187,8 +221,18 @@ if __name__ == '__main__':
                     attribs.append('<graph {}>{}'.format(g.name, comma))
                 attribs.append(']')
             else:
-                attribs.append((attr.name,"<Unknown>"))
-        content.append((node.op_type, str(attribs)))
+                attribs[attr.name] = "<Unknown>"
 
-    content_df = pd.DataFrame(content)
-    print(content_df)
+        node_data['attribute'] = attribs
+        content.append(json.dumps(node_data, default=default))
+
+        attribs = {}
+    
+    buffer_dict = dict()
+    for i in range(len(content)):
+        # For every element, json.loads into the dict
+        buffer_dict[f'{i}'] = json.loads(content[i])
+
+    attrib_json_file = open("attrib_buffer.json", "w+")
+    json.dump(buffer_dict, attrib_json_file, indent=3)
+    print(pd.DataFrame(buffer_dict).transpose())
