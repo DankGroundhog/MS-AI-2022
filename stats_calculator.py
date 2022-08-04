@@ -120,7 +120,6 @@ def calculator(dir, model_dir, flag):
         # return stats_df
         os.chdir("../..")
 
-
 if __name__ == "__main__":
     args = get_args()
     calculator(args.input, args.v)
