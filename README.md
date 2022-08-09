@@ -6,7 +6,7 @@
 
 The process on how is described as follows:
 
-* User creates a folder "`name`" where the model folders would be stored in base directory.
+* User creates a folder "`name`" where the model folders would be stored in a base directory.
 * Move any amount of model folders into `name` folder.
 * Run ``trace_parser.py`` with parameter `--dir "[name]"`
 * `trace_parser.py` will use `ortperf.py` first to acquire a trace of `X` model which will be located inside the model's folder. Afterwards, it renames the trace to "`[model name]_trace`" so it is easier to identify. 
@@ -16,4 +16,20 @@ The process on how is described as follows:
 * ``model_maker.py`` is then used to export ``process_and_make`` which is called to automate the synthetic model creation process. It takes the verbose version of the outputs to ensure maximum amount of data is being utilized in the model creation. 
 * ``synthetic_model.onnx`` is then created and placed inside the models folder for convenience.
 
-**JUSTIFICATION???**
+**JUSTIFICATION**
+* Can be released to external customers/users without compromising internal Microsoft security.
+* Makes the benchmarking/testing process easier.
+    * Run/optimize/benchmark 1 model instead of N models.
+    * No issues modifying synthetic model rather than established ones.
+* Optimizations to synthetic model could translate into optimizations to other models.
+
+**RESOURCES**
+* [ONNX](https://github.com/onnx/onnx)
+* [ONNX Tutorials](https://github.com/onnx/tutorials)
+* [ONNX Runtime API](https://onnxruntime.ai/docs/api/)
+* [Loading an ONNX Model](https://github.com/onnx/onnx/blob/main/docs/PythonAPIOverview.md)
+* [Model Operators - OPs](https://github.com/onnx/onnx/blob/main/docs/Operators.md)
+    * Points of interest:
+        * onnx -> helper.py
+        * onnx -> onnx.proto
+        * [Graph help](https://github.com/onnx/tensorflow-onnx/blob/main/tf2onnx/graph.py)
