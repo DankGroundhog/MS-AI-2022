@@ -33,3 +33,5 @@ The process on how is described as follows:
         * onnx -> helper.py
         * onnx -> onnx.proto
         * [Graph help](https://github.com/onnx/tensorflow-onnx/blob/main/tf2onnx/graph.py)
+
+Project is still WIP as of: 8/10/2022
