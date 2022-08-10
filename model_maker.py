@@ -17,7 +17,7 @@ import json
 import os
 import csv
 
-# import tf2onnx
+import tf2onnx
 
 import networkx as nx
 
@@ -114,8 +114,35 @@ def process_and_make(main_dir):
             if fnmatch(log, '*_verbose.csv'):
     
                 data_df = pd.read_csv(f'model_traces/{log}')
-                input_buffer, output_buffer, op_buffer, attrib_buffer = None, None, None, None
+                # input_buffer, output_buffer, op_buffer, attrib_buffer = None, None, None, None
                 break
+
+
+        # # Code segment to find the first op that fits one graph input
+        # # Actually do it recursively, might be easier than expected
+        # count = 0
+        # for op in range(len(data_df)):
+        #     op_buffer = data_df['op_type'][op]
+            
+        #     i_o = data_df["I/O"][op].split(',')
+        #     input = str(i_o[0].strip("\' [] \'"))
+        #     output = str(i_o[1].strip("\' [] \'"))
+        #     if op == 0:
+        #         for node in range(len(data_df)):
+        #             i_o = data_df["I/O"][node].split(',')
+        #             input = str(i_o[0].strip("\' [] \'"))
+        #             output = str(i_o[1].strip("\' [] \'"))
+        #             for item in range(len(graph_input_buffer)):
+        #                 if input == graph_input_buffer[item].name:
+        #                     nodes.append(make_node(op_buffer, inputs=[input], outputs=[output], name=data_df["name"][i], attributes=data_df["attribute"][i]))
+        #                     count += 1
+        #     # Could have more than one op consuming the graph inputs jumps to the next node
+        #     # after the ones already in the node list
+        #     j = i + count
+        #     for j in range(len(nodes)):
+        #         prev_out = nodes[j-1].output
+        #         if prev_out[0] == input:
+        #             nodes.append(make_node(op_buffer, inputs=[input], outputs=[output], name=data_df["name"][j], attributes=data_df["attribute"][j]))
 
         for i in range(len(data_df)):
             op_buffer = data_df['op_type'][i]
@@ -123,7 +150,9 @@ def process_and_make(main_dir):
             i_o = data_df["I/O"][i].split(',')
             input = str(i_o[0].strip("\' [] \'"))
             output = str(i_o[1].strip("\' [] \'"))
-            nodes.append(make_node(op_buffer, inputs=[input], outputs=[output], name=data_df["name"][i], attributes=data_df["attribute"][i]))
+            attribute_obj = json.loads(data_df["attribute"][i].replace('\'', '\"'))
+            # attr_name = list(attribute_obj.keys())[0]
+            nodes.append(make_node(op_buffer, inputs=[input], outputs=[output], name=data_df["name"][i], **json.loads(data_df["attribute"][i].replace('\'', '\"'))))
             
             # New Code segment with arrangement logic down here
             # i_o = data_df["I/O"][i].split(',')
@@ -137,7 +166,8 @@ def process_and_make(main_dir):
             #         output = str(i_o[1].strip("\' [] \'"))
             #         if input == graph_input_buffer[j]:
             #             nodes.append(make_node(op_buffer, inputs=[input], outputs=[output], name=data_df["name"][i], attributes=data_df["attribute"][i]))
-                
+    
+    # nodes = tf2onnx.graph_builder
     os.chdir(f'..')
 
     model = helper.make_model(
