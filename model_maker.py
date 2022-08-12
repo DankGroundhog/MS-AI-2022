@@ -125,7 +125,52 @@ def process_and_make(main_dir):
             attribute_obj = json.loads(data_df["attribute"][i].replace('\'', '\"'))
             # attr_name = list(attribute_obj.keys())[0]
             nodes.append(make_node(op_buffer, inputs=[input], outputs=[output], name=data_df["name"][i], **json.loads(data_df["attribute"][i].replace('\'', '\"'))))
-            
+
+    del i_o, data_df, input_pos
+    # Trying the dictionary method of building the graph
+    # Filling up a dictionary where the keys are the inputs
+    # and the value is a list of operators that take that input
+    input_dict = dict()
+    for i in range(len(nodes)):
+        if not nodes[i].input[0] in input_dict:
+            input_dict[f'{nodes[i].input[0]}'] = nodes[i]
+        else:
+            if nodes[i].input[0] in input_dict and not isinstance(input_dict[f'{nodes[i].input[0]}'], list):
+                input_dict[f'{nodes[i].input[0]}'] = [input_dict[f'{nodes[i].input[0]}']]
+                input_dict[f'{nodes[i].input[0]}'].append(nodes[i])
+            else:
+                input_dict[f'{nodes[i].input[0]}'].append(nodes[i])
+    
+    # Creating another list of nodes in the order in which they 
+    # take inputs based on input/output relationships
+    graph_nodes = []
+    for i in range(len(nodes)):
+        if i == 0:
+            for j in range(len(graph_input_buffer)):
+                if graph_input_buffer[j].name in input_dict:
+                    graph_nodes.append(input_dict[graph_input_buffer[j].name][0])
+                    input_dict[graph_input_buffer[j].name].pop()
+        else:
+            if graph_nodes[i-1].output[0] in input_dict:
+                graph_nodes.append(input_dict[graph_input_buffer[i].name][0])
+                input_dict[graph_input_buffer[i].name].pop()
+            # else:
+
+    os.chdir(f'..')
+
+    model = helper.make_model(
+    opset_imports=[helper.make_operatorsetid('', 14)],
+    producer_name='Synthetic-Model-test',
+    graph=make_graph(
+        name='test',
+        # inputs=[helper.make_tensor_value_info('A', TensorProto.FLOAT, shape=initial_input)],
+        inputs=graph_input_buffer,
+        outputs=graph_output_buffer,
+        # outputs=[helper.make_tensor_value_info('Y', TensorProto.FLOAT, shape=[1,25])],
+        nodes=nodes,
+        ),
+    )
+
     onnx.save(model, os.path.join(os.getcwd(), "synthetic_model.onnx"))
     model = gs.import_onnx(onnx.load("synthetic_model.onnx"))
     os.remove("synthetic_model.onnx")
