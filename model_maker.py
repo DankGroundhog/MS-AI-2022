@@ -16,6 +16,7 @@ import pandas as pd
 import json
 import os
 import csv
+from pandas import Series
 
 import onnx_graphsurgeon as gs # Must download (python[3] -m pip install onnx_graphsurgeon --index-url https://pypi.ngc.nvidia.com)
 # python[3] -m pip install colored (This one is also needed)
@@ -26,6 +27,17 @@ from onnx.helper import make_graph
 from _curses import *
 import re
 from getAttribs import default
+
+# Maybe creating an adjacency list will produce the correct
+# graph for the model.
+def create_adjacency_list(node_list, graph_inputs):
+    adj_list = {}
+    temp = []
+    for node in node_list:
+        
+        continue
+
+    return adj_list
 
 def make_node(op_type, inputs, outputs, name=None, doc_string=None, domain=None, **kwargs):
     node = helper.make_node(op_type, inputs, outputs, name, doc_string, domain, **kwargs)
@@ -49,8 +61,8 @@ def get_inputs_and_outputs(main_dir):
         for file in os.listdir():
             if fnmatch(file, '*.onnx'):
                 data = onnx.load(file)
-                inputs.append(data.graph.input)
-                outputs.append(data.graph.output)
+                inputs.extend(data.graph.input)
+                outputs.extend(data.graph.output)
     os.chdir('..')
     return inputs, outputs
 
@@ -102,10 +114,10 @@ def process_and_make(main_dir):
     graph_input_buffer, graph_output_buffer = [], []
     for i in range(len(graph_inputs)):
         # graph_inputs[i][0] is already a ValueProto object. Only adding it without creating a new TensorValue or ValueProto equivalent. 
-        graph_input_buffer.append(graph_inputs[i][0])
+        graph_input_buffer.append(graph_inputs[i])
     for j in range(len(graph_outputs)):
         # graph_outputs[j][0] is already a ValueProto object. Only adding it without creating a new TensorValue or ValueProto equivalent. 
-        graph_output_buffer.append(graph_outputs[j][0])
+        graph_output_buffer.append(graph_outputs[j])
 
     for model in os.listdir(main_dir):
         os.chdir(f'{main_dir}/{model}')
@@ -122,9 +134,87 @@ def process_and_make(main_dir):
             i_o = data_df["I/O"][i].split(',')
             input = str(i_o[0].strip("\' [] \'"))
             output = str(i_o[1].strip("\' [] \'"))
-            attribute_obj = json.loads(data_df["attribute"][i].replace('\'', '\"'))
+            # attribute_obj = json.loads(data_df["attribute"][i].replace('\'', '\"'))
             # attr_name = list(attribute_obj.keys())[0]
-            nodes.append(make_node(op_buffer, inputs=[input], outputs=[output], name=data_df["name"][i], **json.loads(data_df["attribute"][i].replace('\'', '\"'))))
+            i_shape_type = dict()
+            o_shape_type = dict()
+            try:
+                # if not isinstance(type(data_df['input_type_shape'][i]), Series):
+                # print(type(data_df['input_type_shape'][i]))
+                if isinstance(data_df['input_type_shape'][i], Series):
+                    input_type_shape = json.loads(data_df['input_type_shape'][i].strip("[]"))
+                else:
+                    input_type_shape = json.loads(data_df['input_type_shape'][i].to_string().strip("[]"))
+            except AttributeError:
+                input_type_shape = data_df['input_type_shape'][i].strip("[]").replace("{", '').replace("}", '').replace("\'", "\"")
+                input_type_shape = "{" + input_type_shape + "}"
+                input_type_shape = json.loads(input_type_shape)
+                # i_shape_type['input'] = input_type_shape
+                # input_type_shape = dict()
+                # input_type_shape = i_shape_type
+            except json.decoder.JSONDecodeError:
+                # input_type_shape = data_df['input_type_shape'].strip("[]").replace("{", '').replace("}", '').replace("\"", "\'")
+                input_type_shape = data_df['input_type_shape'].strip("[]").replace("{", '').replace("}", '').replace("\'", "\"")
+                input_type_shape = "{" + input_type_shape + "}"
+                input_type_shape = json.loads(input_type_shape)
+                # for j in range(len(input_type_shape)):
+                #     if '}' not in input_type_shape[j]:
+                #         input_type_shape[j] += '}'
+                #         input_type_shape[j] = input_type_shape[j].strip()
+                # input_type_shape.pop(len(input_type_shape)-1)
+                # for j in range(len(input_type_shape)):
+                #     i_shape_type[f'input_{j+1}'] = json.loads(input_type_shape[j])
+                # input_type_shape = input_type_shape
+            try:
+                # print(type(data_df['output_type_shape'][i]))
+                if isinstance(data_df['output_type_shape'][i], Series):
+                    output_type_shape = json.loads(data_df['output_type_shape'][i].strip("[]"))
+                else:
+                    output_type_shape = json.loads(data_df['output_type_shape'][i].to_string().strip("[]"))
+                # o_shape_type['input'] = output_type_shape
+                # output_type_shape = dict()
+                # output_type_shape = o_shape_type
+            except AttributeError:
+                output_type_shape = data_df['output_type_shape'][i].strip("[]").replace("{", '').replace("}", "").replace("\'", "\"")
+                output_type_shape = "{" + output_type_shape + "}"
+                output_type_shape = json.loads(output_type_shape)
+            except json.decoder.JSONDecodeError:
+                output_type_shape = data_df['output_type_shape'].strip("[]").replace("{", '').replace("}", "").replace("\'", "\"")
+                output_type_shape = "{" + output_type_shape + "}"
+                output_type_shape = json.loads(output_type_shape)
+                # for j in range(len(output_type_shape)):
+                #     if '}' not in output_type_shape[j]:
+                #         output_type_shape[j] += '}'
+                #         output_type_shape[j] = output_type_shape[j].strip()
+                # output_type_shape.pop(len(input_type_shape)-1)
+                # for j in range(len(input_type_shape)):
+                #     o_shape_type[f'output_{j+1}'] = json.loads(output_type_shape[j])
+                # output_type_shape = o_shape_type
+
+            if len(input_type_shape.keys()) > 1:
+                count = 1
+                for key in list(input_type_shape.keys()):
+                    input_type_shape[f'input_{count}_shape'] = input_type_shape.pop(key)
+                    # del input_type_shape[key]
+                    count += 1
+            else:
+                input_type_shape['input_shape'] = input_type_shape[list(input_type_shape.keys())[0]]
+                del input_type_shape[list(input_type_shape.keys())[0]]
+            
+            if len(output_type_shape.keys()) > 1:
+                count = 1
+                for key in list(output_type_shape.keys()):
+                    output_type_shape[f'output_{count}_shape'] = output_type_shape.pop(key)
+                    # del output_type_shape[key]
+                    count += 1
+            else:
+                output_type_shape['output_shape'] = output_type_shape[list(output_type_shape.keys())[0]]
+                del output_type_shape[list(output_type_shape.keys())[0]]
+
+            # print(f'{op_buffer}\n{input}\n{output}\n{data_df["name"][i]}\n{data_df["attribute"][i]}\n{input_type_shape}\n{output_type_shape}\n-----------------------')
+            nodes.append(make_node(op_buffer, inputs=[input], outputs=[output], name=data_df["name"][i], **json.loads(data_df["attribute"][i].replace('\'', '\"')), **input_type_shape, **output_type_shape))
+            # nodes.append(make_node(op_buffer, name=data_df["name"][i], **json.loads(data_df["attribute"][i].replace('\'', '\"')), **input_type_shape, **output_type_shape))
+
 
     del i_o, data_df, input_pos
     # Trying the dictionary method of building the graph
@@ -141,20 +231,60 @@ def process_and_make(main_dir):
             else:
                 input_dict[f'{nodes[i].input[0]}'].append(nodes[i])
     
+    # 0 - Regular attributes
+    # 1 - input shape
+    # 2 - output shape
+    input_shape_dict = dict()
+    for i in range(len(nodes)):
+        if not str(nodes[i].attribute[1].ints) in input_shape_dict:
+            input_shape_dict[f'{nodes[i].attribute[1].ints}'] = nodes[i]
+        else:
+            if str(nodes[i].attribute[1].ints) in input_shape_dict and not isinstance(input_shape_dict[f'{nodes[i].attribute[1].ints}'], list):
+                input_shape_dict[f'{nodes[i].attribute[1].ints}'] = [input_shape_dict[f'{nodes[i].attribute[1].ints}']]
+                input_shape_dict[f'{nodes[i].attribute[1].ints}'].append(nodes[i])
+            else:
+                input_shape_dict[f'{nodes[i].attribute[1].ints}'].append(nodes[i])
+    # Create a dictionary with shapes too so that if output
+    # does not match input (or does not exist) it can string
+    # up nodes based on input type and shape
+    
     # Creating another list of nodes in the order in which they 
     # take inputs based on input/output relationships
     graph_nodes = []
     for i in range(len(nodes)):
+        # Finds the node that satisfies the graph input
         if i == 0:
             for j in range(len(graph_input_buffer)):
                 if graph_input_buffer[j].name in input_dict:
                     graph_nodes.append(input_dict[graph_input_buffer[j].name][0])
-                    input_dict[graph_input_buffer[j].name].pop()
+        # Overall nodes
         else:
-            if graph_nodes[i-1].output[0] in input_dict:
-                graph_nodes.append(input_dict[graph_input_buffer[i].name][0])
-                input_dict[graph_input_buffer[i].name].pop()
-            # else:
+            # 0 - Regular attributes
+            # 1 - input shape
+            # 2 - output shape
+
+            # If previous output fits any next node, add
+            # if graph_nodes[i-1].output[0] in input_dict and len(graph_input_buffer) != 0:
+            try:
+                if graph_nodes[i-1].output[0] in input_dict and input_dict[graph_nodes[i-1].output[0]] != []:
+                    graph_nodes.append(input_dict[graph_nodes[i-1].output[0]][0])
+                    input_dict[graph_nodes[i-1].output[0]].pop()
+                    # input_shape_dict[]
+                # If it does not, check for similar shape and add
+                elif str(graph_nodes[i-1].attribute[len(graph_nodes[i-1].attribute._values)-1].ints) in input_shape_dict and input_shape_dict[str(graph_nodes[i-1].attribute[len(graph_nodes[i-1].attribute._values)-1].ints)] != []:
+                    graph_nodes.append(input_shape_dict[str(graph_nodes[i-1].attribute[len(graph_nodes[i-1].attribute._values)-1].ints)][0])
+                    input_shape_dict[str(graph_nodes[i-1].attribute[len(graph_nodes[i-1].attribute._values)-1].ints)].pop()
+            except IndexError:
+                    if graph_nodes[(i-(i-len(graph_nodes)))-1].output[0] in input_dict and input_dict[graph_nodes[(i-(i-len(graph_nodes)))-1].output[0]] != []:
+                        graph_nodes.append(input_dict[graph_nodes[(i-(i-len(graph_nodes)))-1].output[0]][0])
+                        input_dict[graph_nodes[(i-(i-len(graph_nodes)))-1].output[0]].pop()
+                    # input_shape_dict[]
+                    # If it does not, check for similar shape and add
+                    elif str(graph_nodes[(i-(i-len(graph_nodes)))-1].attribute[len(graph_nodes[(i-(i-len(graph_nodes)))-1].attribute._values)-1].ints) in input_shape_dict and input_shape_dict[str(graph_nodes[(i-(i-len(graph_nodes)))-1].attribute[len(graph_nodes[(i-(i-len(graph_nodes)))-1].attribute._values)-1].ints)] != []:
+                        graph_nodes.append(input_shape_dict[str(graph_nodes[(i-(i-len(graph_nodes)))-1].attribute[len(graph_nodes[(i-(i-len(graph_nodes)))-1].attribute._values)-1].ints)][0])
+                        input_shape_dict[str(graph_nodes[(i-(i-len(graph_nodes)))-1].attribute[len(graph_nodes[(i-(i-len(graph_nodes)))-1].attribute._values)-1].ints)].pop()
+
+                
 
     os.chdir(f'..')
 
@@ -167,16 +297,16 @@ def process_and_make(main_dir):
         inputs=graph_input_buffer,
         outputs=graph_output_buffer,
         # outputs=[helper.make_tensor_value_info('Y', TensorProto.FLOAT, shape=[1,25])],
-        nodes=nodes,
+        nodes=graph_nodes,
         ),
     )
 
     onnx.save(model, os.path.join(os.getcwd(), "synthetic_model.onnx"))
-    model = gs.import_onnx(onnx.load("synthetic_model.onnx"))
-    os.remove("synthetic_model.onnx")
-    model = model.toposort()
+    # model = gs.import_onnx(onnx.load("synthetic_model.onnx"))
     # os.remove("synthetic_model.onnx")
-    onnx.save(gs.export_onnx(model), "synthetic_model.onnx")
+    # model = model.toposort()
+    # # os.remove("synthetic_model.onnx")
+    # onnx.save(gs.export_onnx(model), "synthetic_model.onnx")
     print(f"Output in {os.getcwd()}")
 
     # graph = Graph(len(nodes))
