@@ -30,11 +30,23 @@ from getAttribs import default
 
 # Maybe creating an adjacency list will produce the correct
 # graph for the model.
-def create_adjacency_list(node_list, graph_inputs):
+def create_adjacency_list(node_list, graph_inputs, graph_outputs, input_dict):
     adj_list = {}
     temp = []
-    for node in node_list:
+
+    # Work on this adjacency list algo
+    def recurse_path(node_list, path = []):
         
+        return path
+
+    for i in range(len(node_list)):
+        if i == 0:
+            for j in range(len(graph_inputs)):
+                # if node 1 and 2 are in the input dictionary
+                if graph_inputs[j].name in input_dict and graph_inputs[j+1].name in input_dict:
+                    temp.append(input_dict[graph_inputs[j+1].name][0])
+
+            pass
         continue
 
     return adj_list
