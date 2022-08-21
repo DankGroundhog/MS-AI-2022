@@ -4,4 +4,10 @@ models
 __pycache__
 onnx_shapes.py 
 make-onnx*.py
+<<<<<<< HEAD
 .gitignore
+=======
+Scrap
+conv-relu
+model.onnx
+>>>>>>> origin/dev

@@ -3,6 +3,7 @@ import json
 import logging
 import re
 import sys
+from attr import attributes
 from matplotlib.pyplot import pause
 
 import numpy as np
@@ -13,9 +14,9 @@ import onnx
 from onnx import ModelProto, helper, numpy_helper, onnx_pb
 from sqlalchemy import column
 
-# from onnx_shapes import main
+import os
 
-import ortperf
+from getAttribs import attribs, set_attrib_json
 
 logging.basicConfig(level=logging.INFO)
 _log = logging.getLogger(__name__)  # pylint: disable=invalid-name
@@ -29,6 +30,7 @@ def get_args():
     parser.add_argument('-l', type=int, default=20, help='list top N items, default=20')
     parser.add_argument('-v', action='store_true', help='verbose')
     parser.add_argument('--nodes', action='store_true', help='show top N nodes')
+    parser.add_argument('--source', required=False)
     args = parser.parse_args()
     return args
 
@@ -65,14 +67,17 @@ def json_to_df(profile_path, verbose):
             activation_size = arg.get('activation_size')
             output_size = arg.get('output_size')
             input_type_shape = arg.get('input_type_shape')
-            input_type_shape = json.dumps([list(i.values())[0] for i in input_type_shape])
+            input_type_shape = json.dumps(input_type_shape) # Use JSON decode when reading this field
             assert input_type_shape is not None
             output_type_shape = arg.get('output_type_shape')
+            output_type_shape = json.dumps(output_type_shape) # Use JSON decode when reading this field
+            assert input_type_shape is not None
 
             e = {
                 "name": name, "dur": dur, "op_type": op, "provider": provider,
                 "parameter_size": parameter_size, "activation_size": activation_size,
-                "output_size": output_size, "input_type_shape": input_type_shape
+                "output_size": output_size, "input_type_shape": input_type_shape,
+                "output_type_shape": output_type_shape
             }
             entries.append(e)
     df = pd.DataFrame([f for f in entries])
@@ -82,6 +87,11 @@ def json_to_df(profile_path, verbose):
 
 def logger(args):
     df = json_to_df(args.input, args.v)
+
+    with open(f"{args.source}", "rb") as f:
+        data = f.read()
+        model_proto = ModelProto()
+        model_proto.ParseFromString(data)
     
     df = pd.DataFrame(df) 
 
@@ -92,15 +102,21 @@ def logger(args):
     df['pct'] = (100 * df['dur'] / df2['dur'])
 
     if not args.nodes:
-        fields = ["name", "op_type", "dur", "count", "pct", "input_type_shape"] # missing attribs, NOT IN TRACE
+        fields = ["name", "op_type", "dur", "count", "pct", "input_type_shape", "output_type_shape"]
         
         # Summarized CSV
         df1 = df[fields].groupby(['op_type']).sum()
-        # Verbose CSV
-        df2 = df[fields].groupby(['op_type', 'input_type_shape']).sum()
+        df_attribs = attribs(model_proto)
+
+        if (set(df.name) - set(df_attribs.name)) == set():
+            print("No naming mismatches, proceeding...")
+        else:
+            print("There are naming conflicts, results may be slightly different from the model file. Proceed with caution...")
+        df2 = pd.merge(df, df_attribs, on="name", how='outer')
+
 
         df1 = df1.sort_values(by="dur", ascending=False)
-        df2 = df2.sort_values(by="dur", ascending=False)
+        df2 = df2.sort_values(by="I/O", ascending=False)
         df1['csum'] = df1['pct'].cumsum()
         df1['avg'] = df1['dur'] / df1['count']
         df2['csum'] = df2['pct'].cumsum()
@@ -110,12 +126,18 @@ def logger(args):
         # print(df1)
 
     else:
-        fields = ["name", "op_type", "dur", "count", "pct", "input_type_shape"]
+        fields = ["name", "op_type", "dur", "count", "pct", "input_type_shape", "output_type_shape"]
         
         # Summarized CSV
         df1 = df[fields].groupby(['op_type']).sum()
         # Verbose CSV
-        df2 = df[fields].groupby(['op_type', 'input_type_shape']).sum()
+        df_attribs = attribs(model_proto)
+        if (set(df.name) - set(df_attribs.name)) == set():
+            print("No naming mismatches, proceeding...")
+        else:
+            print("There are naming conflicts, results may be slightly different...")
+        df2 = pd.merge(df[fields], df_attribs, on="name", how='outer')
+        df2 = df[fields].groupby(['op_type', 'input_type_shape', 'output_type_shape', 'attribute']).sum()
 
         df1 = df1.sort_values(by="dur", ascending=False)
         df2 = df2.sort_values(by="dur", ascending=False)
@@ -141,8 +163,6 @@ def logger(args):
         json_file = open("trace_records_verbose.json", 'w+')
         json_file.write(json_df_Ver)
         json_file.close()
-        
-    
 
 if __name__ == '__main__':
     args = get_args()
